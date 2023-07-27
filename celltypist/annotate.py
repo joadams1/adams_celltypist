@@ -1,10 +1,11 @@
-from . import classifier
-from .models import Model
+import classifier
+#from classifier import Classifier, AnnotationResult
+from models import Model
 from typing import Optional, Union
 import numpy as np
 import pandas as pd
 from anndata import AnnData
-from . import logger
+from logger import logger
 
 def annotate(filename: Union[AnnData,str] = "",
              model: Optional[Union[str, Model]] = None,
@@ -73,6 +74,7 @@ def annotate(filename: Union[AnnData,str] = "",
         3) :attr:`~celltypist.classifier.AnnotationResult.probability_matrix`, probability matrix from celltypist.
         4) :attr:`~celltypist.classifier.AnnotationResult.adata`, AnnData representation of the input data.
     """
+    print("ah")
     #load model
     lr_classifier = model if isinstance(model, Model) else Model.load(model)
     #construct Classifier class

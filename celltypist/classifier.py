@@ -5,8 +5,10 @@ from anndata import AnnData
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from .models import Model
-from . import logger
+from models import Model
+from logger import logger
+
+
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
@@ -311,8 +313,7 @@ class Classifier():
                     raise Exception(
                             f"🛑 Fail to use the `.raw` attribute in the input object. {e}")
                 if (self.indata.min() < 0) or (self.indata.max() > np.log1p(10000)):
-                    raise ValueError(
-                            "🛑 Invalid expression matrix in both `.X` and `.raw.X`, expect log1p normalized expression to 10000 counts per cell")
+                    logger.info("🛑 Invalid expression matrix in both `.X` and `.raw.X`, expect log1p normalized expression to 10000 counts per cell")
             else:
                 self.indata = self.adata.X
                 self.indata_genes = self.adata.var_names

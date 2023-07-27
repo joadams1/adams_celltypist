@@ -8,8 +8,9 @@ import pandas as pd
 from typing import Optional, Union
 from scipy.special import expit
 from sklearn import __version__ as skv
-from . import logger
-from .samples import _get_sample_data
+from logger import logger
+from samples import _get_sample_data
+
 
 #create ~/.celltypist (or folder specified by the environment variable $CELLTYPIST_FOLDER) and subdirs
 celltypist_path = os.getenv('CELLTYPIST_FOLDER', default = os.path.join(str(pathlib.Path.home()), '.celltypist'))
