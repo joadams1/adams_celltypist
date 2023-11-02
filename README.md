@@ -10,6 +10,40 @@ CellTypist is an automated tool for cell type classification, harmonisation, and
 # CellTypist website
 Information of CellTypist can be also found in our CellTypist portal. [![Website www.celltypist.org](https://img.shields.io/website-up-down-brightgreen-red/http/shields.io.svg)](https://www.celltypist.org/)
 
+# Organization of this repo
+There are several different groups of files in the celltypist directory, and it is important to know what things are what for easy nagvigation. 
+
+## Python files from original CellTypist
+These are files that you can find in the original CellTypist code. Some of them have minor moditfications to allow for the added functionality of this version of CellTypist, but they are largely the same. These files include:
+1. __init__.py
+2. annotate.py
+3. classifier.py
+4. command_line.py
+5. logger.py
+6. models.py
+7. plot.py
+8. samples.py
+9. train.py
+
+## Python files for making models and annotating data
+These are files that are meant to be submitted in an lsf job to quickly train a model on a dataset or annotate data. They are new and not in the original CellTypsit repo. They include: 
+1. annotate_data.py
+2. train_model.py
+
+## New CellTypist models that are avaliable for download and use
+These are 5 new models that I made using a variety of datasets that captured something interesting. These are all avaliable for use and can be found in the `Final Models` directory.
+
+## Explanatory Notebooks 
+These are two notebooks that are designed to walk someone through the basics of CellTypist, including how to make a model, how to use a model to annotate data, and some basic visualizations and metrics to use to make sure the model and/or annotation is good. These python notebooks are: 
+1. How to Train a CellTypist Model.ipynb
+2. How to Use CellTypist Models.ipynb
+
+## Files that were used/made during my exploration of CellTypist and benchmarking of models
+These are Python Notebooks and pickle files that I made while looking into CellTypist and making many different models. They are not used in any of the .py files and are for my own use only. These inlcude: 
+1. `New Models` directory
+2. Benchmarking Models.ipynb
+3. Making New Models.ipynb
+
 # Interactive tutorials
 ### Classification
 [Using CellTypist for cell type classification ![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Teichlab/celltypist/blob/main/docs/notebook/celltypist_tutorial.ipynb)  
