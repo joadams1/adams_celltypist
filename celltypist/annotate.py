@@ -16,7 +16,8 @@ def annotate(filename: Union[AnnData,str] = "",
              p_thres: float = 0.5,
              majority_voting: bool = False,
              over_clustering: Optional[Union[str, list, tuple, np.ndarray, pd.Series, pd.Index]] = None,
-             min_prop: float = 0) -> classifier.AnnotationResult:
+             min_prop: float = 0, 
+             check_expression: bool = False) -> classifier.AnnotationResult:
     """
     Run the prediction and (optional) majority voting to annotate the input dataset.
 
@@ -74,7 +75,6 @@ def annotate(filename: Union[AnnData,str] = "",
         3) :attr:`~celltypist.classifier.AnnotationResult.probability_matrix`, probability matrix from celltypist.
         4) :attr:`~celltypist.classifier.AnnotationResult.adata`, AnnData representation of the input data.
     """
-    print("ah")
     #load model
     lr_classifier = model if isinstance(model, Model) else Model.load(model)
     #construct Classifier class

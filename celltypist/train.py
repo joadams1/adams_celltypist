@@ -19,9 +19,26 @@ import logger
 
 import cytopus as cp
 
-#import celltypist as ct #if its throwing an error with sklearn, install scikit-learn version 1.1.0 & that should fix
-#from celltypist import logger 
-#from celltypist.models import Model
+
+def train_test_split(adata, frac: int = 0.75):
+    """
+    USING OUTLINE OF CODE FROM trVAE https://doi.org/10.1093/bioinformatics/btaa800
+    Split AnnData into test and train datasets - maintains annotations
+    
+    Params: 
+    adata
+        Annotated data matrix (Anndata)
+    frac
+        Fraction of cells to be used in the training set
+    """
+    no_idx_train = int(adata.shape[0] * frac)
+    indices = np.arange(adata.shape[0])
+    np.random.shuffle(indices)
+    train_index = indices[:no_idx_train]
+    test_index = indices[no_idx_train:]
+    train = adata[train_index]
+    test = adata[test_index]
+    return train, test
 
 def _to_vector(_vector_or_file):
     """
@@ -52,9 +69,13 @@ def _to_array(_array_like) -> np.ndarray:
         raise TypeError(
                 f"🛑 Please provide a valid array-like object as input")
 
-def _prepare_data(X, labels, genes, transpose) -> tuple:
+def _prepare_data(X, labels, genes, transpose, normalize) -> tuple:
     """
     For internal use. Prepare data for celltypist training.
+    
+    ONE NEW ARG
+    normalize 
+        whether or not to normalize anndata input
     """
     if (X is None) or (labels is None):
         raise Exception(
@@ -62,6 +83,15 @@ def _prepare_data(X, labels, genes, transpose) -> tuple:
     if isinstance(X, AnnData) or (isinstance(X, str) and X.endswith('.h5ad')):
         adata = sc.read(X) if isinstance(X, str) else X
         adata.var_names_make_unique()
+        
+        if normalize:
+            adata.X = adata.raw.X
+            adata.X= np.log1p(adata.X)
+            sc.pp.normalize_total(adata)
+            indata = adata.X
+        else: 
+            indata = adata.X
+            
         if adata.X.min() < 0:
             logger.info("👀 Detected scaled expression in the input data, will try the .raw attribute")
             try:
@@ -71,7 +101,7 @@ def _prepare_data(X, labels, genes, transpose) -> tuple:
                 raise Exception(
                         f"🛑 Fail to use the .raw attribute in the input object. {e}")
         else:
-            indata = adata.X
+            #indata = adata.X
             genes = adata.var_names
         if isinstance(labels, str) and (labels in adata.obs):
             labels = adata.obs[labels]
@@ -93,7 +123,7 @@ def _prepare_data(X, labels, genes, transpose) -> tuple:
         adata.var_names_make_unique()
         if not float(adata.X.max()).is_integer():
             logger.warn(f"⚠️ Warning: the input file seems not a raw count matrix. The trained model may be biased")
-        sc.pp.normalize_total(adata, target_sum=1e4)
+        sc.pp.normalize_total(adata, target_sum=1e4) 
         sc.pp.log1p(adata)
         indata = adata.X
         genes = adata.var_names
@@ -135,7 +165,7 @@ def _LRClassifier(indata, labels, C, solver, max_iter, n_jobs, **kwargs) -> Logi
 
 def _SGDClassifier(indata, labels,
                    alpha, max_iter, n_jobs,
-                   mini_batch, batch_number, batch_size, epochs, balance_cell_type, penalty , **kwargs) -> SGDClassifier:
+                   mini_batch, batch_number, batch_size, epochs, balance_cell_type, penalty ,  **kwargs) -> SGDClassifier:
     """
     For internal use 
     
@@ -181,6 +211,7 @@ def train_modified(X = None,
           transpose_input: bool = False,
           with_mean: bool = True,
           check_expression: bool = False,
+          normalize: bool = False,
           #LR param
           C: float = 1.0, solver: Optional[str] = None, max_iter: Optional[int] = None, n_jobs: Optional[int] = None,
           #SGD param
@@ -188,7 +219,7 @@ def train_modified(X = None,
           #mini-batch
           mini_batch: bool = False, batch_number: int = 100, batch_size: int = 1000, epochs: int = 10, balance_cell_type: bool = False,
           #feature selection
-          feature_selection: bool = False, top_genes: int = 300, use_cytopus: bool = False, cyto_genes: Optional[np.ndarray] = None,
+          feature_selection: bool = False, top_genes: int = 300, use_additional: bool = False, additional_genes: Optional[np.ndarray] = None,
           #description
           date: str = '', details: str = '', url: str = '', source: str = '', version: str = '',
           #penalty
@@ -293,29 +324,34 @@ def train_modified(X = None,
     **kwargs
         Other keyword arguments passed to :class:`~sklearn.linear_model.LogisticRegression` (`use_SGD = False`) or :class:`~sklearn.linear_model.SGDClassifier` (`use_SGD = True`).
         
-    FOUR NEW PARAMETERS: 
+    FIVE NEW PARAMETERS: 
     penalty
         Which regularization method to use 
         (Default: "l2")
     switch_penalty
         Whether to switch the type of regualarization for the second round of model training 
         (Default: False)
-    use_cytopus 
-        Whether to confirm if cytopus genes are included in feature_selection (they are added if not)
+    use_additional 
+        Whether to confirm that additional genes are included in feature_selection (they are added if not)
         This argument is relevant only if feature selection happens (`feature_selection = True`) 
         (Default: False)
-    cyto_genes
+    additional_genes
         List of gene names from ctyopus cell identities dictionary
-        This argument is relevant only if feature selection with cytopus genes happens (`feature_selection = True` and `use_cytopus = True`) 
+        This argument is relevant only if feature selection with additional genes happens (`feature_selection = True` and `use_additional = True`)
+    normalize 
+        Whether or not to normalize the data in prepare_data(). If True, data will be normalized to median library size. Will be ignored if X is not given as AnnData. 
+        (Default: `False`)
 
     Returns
     ----------
     :class:`~celltypist.models.Model`
         An instance of the :class:`~celltypist.models.Model` trained by celltypist.
+    pandas.DataFrame
+        A DataFrame that contains the 300 genes that were selected for each cell type (organized by cell type)
     """
     #prepare
     logger.info("🍳 Preparing data before training")
-    indata, labels, genes = _prepare_data(X, labels, genes, transpose_input)
+    indata, labels, genes = _prepare_data(X, labels, genes, transpose_input, normalize)
     if isinstance(indata, pd.DataFrame):
         indata = indata.values
     elif with_mean and isinstance(indata, spmatrix):
@@ -387,20 +423,20 @@ def train_modified(X = None,
             genes_dict[cell_name] = gene_names    
         gene_index = np.unique(gene_index)
         
-        if use_cytopus: 
-            logger.info(f"🧬 {len(gene_index)} features are selected pre cytopus")
-            #confirming that all cytopus genes are in the top genes used in feature selection
-            #first get a list of all the indexs of cyto_genes 
-            ct_gene_index = []
-            for x in cyto_genes:
+        if use_additional: 
+            logger.info(f"🧬 {len(gene_index)} features are selected before checking with external genes")
+            #confirming that all external genes are in the top genes used in feature selection
+            #first get a list of all the indexs of additional_genes 
+            external_gene_index = []
+            for x in additional_genes:
                 if x in genes: 
                     idx = np.where(genes==x)[0][0]
-                    ct_gene_index.append(idx)
-            for x in ct_gene_index: 
+                    external_gene_index.append(idx)
+            for x in external_gene_index: 
                 if x not in gene_index: 
                     gene_index = np.append(gene_index, x)
             gene_index = np.unique(gene_index)
-            logger.info(f"🧬 {len(gene_index)} features are selected after cytopus")
+            logger.info(f"🧬 {len(gene_index)} features are selected after checking with external genes")
         else:
             logger.info(f"🧬 {len(gene_index)} features are selected")
         genes = genes[gene_index]
@@ -431,6 +467,7 @@ def train_modified(X = None,
     return Model(classifier, scaler, description), genes_df
 
 '''
+ORIGINAL CELLTYPIST FUNCTIONS THAT ARE UNCHAGED
 def _SGDClassifier(indata, labels,
                    alpha, max_iter, n_jobs,
                    mini_batch, batch_number, batch_size, epochs, balance_cell_type, **kwargs) -> SGDClassifier:
