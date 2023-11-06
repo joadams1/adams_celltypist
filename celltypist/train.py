@@ -385,14 +385,11 @@ def train_modified(X = None,
     logger.info(f"⚖️ Scaling input data")
     
     scaler = StandardScaler(with_mean = with_mean)
-    print('Scale transform done1')
     indata = scaler.fit_transform(indata[:, ~flag] if flag.sum() > 0 else indata)
-    print('Scale transform done')
     indata[indata > 10] = 10
     #sklearn (Cython) does not support very large sparse matrices for the time being
     if isinstance(indata, spmatrix) and ((indata.indices.dtype == 'int64') or (indata.indptr.dtype == 'int64')):
         indata = indata.toarray()
-    print('to array done')
     #max_iter
     if max_iter is None:
         if indata.shape[0] < 50000:
