@@ -1,7 +1,7 @@
 #CellTypist 1.0
 from . import classifier, models, samples
 from .annotate import annotate, Model
-from .train import train
+from .train import train_modified
 from .plot import dotplot
 #CellTypist 2.0
 from .contro.harmonize import harmonize, harmonise, DistanceAlignment
